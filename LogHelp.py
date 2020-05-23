@@ -1,7 +1,7 @@
 import logging
 
 
-def Logger(filename):
+def logger(filename):
     logger = logging.getLogger(filename)
     log_format = "%(asctime)s ||| %(name)s ||| %(levelname)s ||| %(message)s"
     formatter = logging.Formatter(log_format, datefmt="%m-%d-%Y %H:%M:%S %Z")

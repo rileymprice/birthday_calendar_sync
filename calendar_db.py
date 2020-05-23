@@ -8,7 +8,7 @@ class calendar_db:
     def __init__(self):
         self.conn = sqlite3.connect("calendar.db")
         self.cur = self.conn.cursor()
-        self.conn.row_factory = dict_factory
+        # self.conn.row_factory = dict_factory
         self.cur.execute(
             "CREATE TABLE IF NOT EXISTS contact_event (id TEXT PRIMARY KEY,full_name TEXT,date DATE,event_name TEXT)"
         )
@@ -62,6 +62,7 @@ class calendar_db:
         except sqlite3.Error as error:
             logger.Error(f"Error getting birthday events: {error}")
         else:
+            logger.info(f"Successfully got all birthday_event events")
             all_events = events.fetchall()
             return all_events
 

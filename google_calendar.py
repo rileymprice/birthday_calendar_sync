@@ -6,11 +6,10 @@ from calendar_db import calendar_db
 calendar_db = calendar_db()
 calendar_service = calendar_creds()
 
-birthday_calendar_id = "dhig8c0eiic01g4r895tgpu04o@group.calendar.google.com"
-contacts_calendar_id = "addressbook#contacts@group.v.calendar.google.com"
 
 
 def create_events():
+    db_events = calendar_db.get
     for event in event_list:
         calendar_service.events().insert(
             calendarId=birthday_calendar_id, body=event
