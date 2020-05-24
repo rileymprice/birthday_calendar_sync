@@ -10,10 +10,7 @@ class calendar_db:
         self.cur = self.conn.cursor()
         # self.conn.row_factory = dict_factory
         self.cur.execute(
-            "CREATE TABLE IF NOT EXISTS contact_event (id TEXT PRIMARY KEY,full_name TEXT,date DATE,event_name TEXT)"
-        )
-        self.cur.execute(
-            "CREATE TABLE IF NOT EXISTS birthday_event (id TEXT PRIMARY KEY,event_name TEXT,contact_event_id TEXT REFERENCES contact_event (id),date DATE)"
+            "CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT,full_name TEXT,date DATE,event_name TEXT,event_type TEXT,contact_event_id TEXT,birthday_event_id TEXT)"
         )
         self.conn.commit()
 
@@ -23,50 +20,69 @@ class calendar_db:
             d[col[0]] = row[idx]
         return d
 
-    def insert_contact_birthday(self, id, full_name, date, event_name):
+    def insert_event(self, contact_event_id, full_name, date, event_name, event_type):
         try:
             logger.info("Inserting contact birthday")
             self.cur.execute(
-                "INSERT INTO contact_event (id,full_name,date,event_name) VALUES (?,?,?,?)",
-                (id, full_name, date, event_name),
+                "INSERT INTO events (full_name,date,event_name,event_type,contact_event_id) VALUES (?,?,?,?,?)",
+                (full_name, date, event_name, event_type, contact_event_id),
             )
         except sqlite3.IntegrityError as error:
             logger.error(f"Error inserting contact birthday: {error}")
         else:
-            logger.info(f"Inserted {id} into contact_event")
+            logger.info(f"Inserted {contact_event_id} into events")
             self.conn.commit()
 
-    def insert_birthday_event(self, id, name, contact_event_id, date):
+    def update_birthday_id(self, id, birthday_event_id):
         try:
-            logger.info(f"Iserting {name} and {date} into birthday_event")
+            logger.info(f"Updating birthday event id for id: {id}")
             self.cur.execute(
-                "INSERT INTO birthday_event (id,name,contact_event_id,date) VALUES (?,?,?,?)",
-                (id, name, contact_event_id, date),
+                "UPDATE events SET birthday_event_id=? WHERE id=?",
+                (birthday_event_id, id),
             )
-        except sqlite3.IntegrityError as error:
-            logger.error(f"Error inserting birthday event: {error}")
-        else:
-            logger.info(f"Inserted {name} and {date} into birthday_event")
-            self.conn.commit()
-
-    def get_columns(self, table):
-        sql = f"PRAGMA table_info({table})"
-        columns = self.cur.execute(sql)
-        all_columns = columns.fetchall()
-        column_names = all_columns.keys()
-        return column_names
-
-    def get_birthday_events(self):
-        try:
-            events = self.cur.execute("SELECT * FROM birthday_event")
         except sqlite3.Error as error:
-            logger.Error(f"Error getting birthday events: {error}")
+            logger.error(f"Error updating birthday_event_id for {id}: {error}")
         else:
-            logger.info(f"Successfully got all birthday_event events")
-            all_events = events.fetchall()
+            logger.info(f"Updated birthday_event_id for {id}")
+            self.conn.commit()
             return all_events
 
-    def get_contact_birthdays(self):
-        events = self.cur.execute("SELECT * FROM contact_event")
-        all_events = events.fetchall()
-        return all_events
+    def get_null_birthdays(self):
+        try:
+            logger.info("Getting Null birthday ids")
+            null_birthday_data = self.cur.execute(
+                "SELECT * FROM events WHERE birthday_event_id is null"
+            )
+        except sqlite3.Error as error:
+            logger.error(f"Error getting null birthday data: {error}")
+        else:
+            null_data = null_birthday_data.fetchall()
+            null_data_info = []
+            data_example = {"date": 0, "summary": 0, "id": 0}
+            for row in null_data:
+                row_dict = data_example.copy()
+                row_dict["id"] = row[0]
+                row_dict["date"] = row[2]
+                row_dict["summary"] = row[3]
+                null_data_info.append(row_dict)
+            return null_data_info
+
+    def does_contact_exist(self, contact_event_id):
+        try:
+            logger.info(f"Checking if contact_event_id exists: {contact_event_id}")
+            data = self.cur.execute(
+                "SELECT * FROM events WHERE contact_event_id=?", (contact_event_id,)
+            )
+        except sqlite3.Error as error:
+            logger.error(f"Error checking contact id {contact_event_id}:{error}")
+        else:
+            rows = data.fetchall()
+            if len(rows) > 0:
+                return True
+            else:
+                return False
+
+
+if __name__ == "__main__":
+    cal = calendar_db()
+    print(cal.get_null_birthday_ids())
