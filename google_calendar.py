@@ -3,6 +3,7 @@ import json
 import sqlite3
 from calendar_db import calendar_db
 import os
+from LogHelp import logger
 
 calendar_db = calendar_db()
 calendar_service = calendar_creds()
@@ -10,6 +11,7 @@ calendar_service = calendar_creds()
 CONTACT_CALENDAR_ID = os.environ.get("CONTACT_CALENDAR")
 BIRTHDAY_CALENDAR_ID = os.environ.get("BIRTHDAY_CALENDAR")
 
+logger = logger(__name__)
 
 def update_birthdays():
     null_data = calendar_db.get_null_birthdays()
@@ -17,8 +19,14 @@ def update_birthdays():
         date = null_row['date']
         id = null_row['id']
         event_name = null_row['summary']
-        event_data = {'summary':event_name,'description':event_name,'start':{'date':date},'recurrence':['RRULE:FREQ=YEARLY;COUNT=5']}
-        result = calendar_service.events().insert(calendarId=BIRTHDAY_CALENDAR_ID,body=event_data).execute()
+        event_data = {'summary':event_name,'description':event_name,'start':{'date':date},'recurrence':['RRULE:FREQ=YEARLY']}
+        try:
+            result = calendar_service.events().insert(calendarId=BIRTHDAY_CALENDAR_ID,body=event_data).execute()
+        except  Exception as error:
+            logger.error(f'Error updating birthday for {id}: {error}')
+        else:
+            birthday_id = result['id']
+            calendar_db.update_birthday_id(id,birthday_id)
 
 
 def get_contact_events():
@@ -33,6 +41,10 @@ def get_contact_events():
         if not calendar_db.does_contact_exist(event_id):
             calendar_db.insert_contact_birthday(event_id, full_name, event_date, event_name, event_type)
         else:
+
+
+
+
 
 if __name__ == "__main__":
     try:
